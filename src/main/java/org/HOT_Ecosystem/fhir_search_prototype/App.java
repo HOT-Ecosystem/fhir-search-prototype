@@ -8,6 +8,7 @@ import org.hibernate.Transaction;
 
 import org.HOT_Ecosystem.fhir_search_prototype.Student;
 import org.HOT_Ecosystem.fhir_search_prototype.HibernateUtil;
+import org.HOT_Ecosystem.fhir_search_prototype.jpa.entity.TermConcept;
 
 public class App {
 
@@ -17,6 +18,48 @@ public class App {
         System.out.println("stats: " + session.getStatistics());
     }
     public static void main(String[] args) {
+        //doStudents();
+        queryConcepts();
+    }
+
+/***
+                           Table "public.trm_concept"
+     Column      |            Type             | Collation | Nullable | Default 
+-----------------+-----------------------------+-----------+----------+---------
+ pid             | bigint                      |           | not null | 
+ codeval         | character varying(500)      |           | not null | 
+ codesystem_pid  | bigint                      |           |          | 
+ display         | character varying(400)      |           |          | 
+ index_status    | bigint                      |           |          | 
+ parent_pids     | oid                         |           |          | 
+ code_sequence   | integer                     |           |          | 
+ concept_updated | timestamp without time zone |           |          | 
+
+hapifhir=# select * from  trm_concept where lower(display) like '%blood%' and lower(display) like '%pressure%' and lower(display) like '%systolic%';
+
+***/
+
+    public static void queryConcepts() {
+        Transaction transaction = null;
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            System.out.println("query"); 
+            List < TermConcept > concepts = session.createQuery("from TermConcept where display like '%systolic%'", TermConcept.class).list();
+
+            System.out.println("list");
+            concepts.forEach(c -> System.out.println(c.toString()));
+            //concepts.forEach(c -> System.out.println(c.getId() + " " + c.getDisplay()));
+        }
+        catch (Exception e) {
+        	System.out.println("App Exception putting student objects");
+            if (transaction != null) {
+                transaction.rollback();
+            }
+            //e.printStackTrace();
+            System.out.println(e.getMessage());
+        }
+    }
+
+    public static void doStudents() {
 
         Student student = new Student("Ramesh", "Fadatare", "rameshfadatare@javaguides.com");
         Student student1 = new Student("John", "Cena", "john@javaguides.com");
@@ -36,7 +79,8 @@ public class App {
             // commit transaction
             System.out.println("commit");
             transaction.commit();
-        } catch (Exception e) {
+        }
+         catch (Exception e) {
         	System.out.println("App Exception putting student objects");
             if (transaction != null) {
                 transaction.rollback();
