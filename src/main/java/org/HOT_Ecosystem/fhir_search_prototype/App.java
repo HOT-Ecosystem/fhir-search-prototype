@@ -9,6 +9,7 @@ import org.hibernate.Transaction;
 import org.HOT_Ecosystem.fhir_search_prototype.Student;
 import org.HOT_Ecosystem.fhir_search_prototype.HibernateUtil;
 import org.HOT_Ecosystem.fhir_search_prototype.jpa.entity.TermConcept;
+import org.HOT_Ecosystem.fhir_search_prototype.jpa.entity.TermCodeSystemVersion;
 
 public class App {
 
@@ -19,7 +20,9 @@ public class App {
     }
     public static void main(String[] args) {
         //doStudents();
-        queryConcepts();
+        //queryConceptsByText();
+        queryConceptsByTextJoin("LOINC");
+        //queryConceptsByCode();
     }
 
 /***
@@ -38,14 +41,64 @@ public class App {
 hapifhir=# select * from  trm_concept where lower(display) like '%blood%' and lower(display) like '%pressure%' and lower(display) like '%systolic%';
 
 ***/
-
-    public static void queryConcepts() {
+    public static void queryConceptsByText() {
+        String q1 = "from TermConcept where lower(display) like '%systolic%' and lower(display) like '%blood%' and lower(display) like '%pressure%'";
         Transaction transaction = null;
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
-            System.out.println("query"); 
-            List < TermConcept > concepts = session.createQuery("from TermConcept where display like '%systolic%'", TermConcept.class).list();
+            // simple single-entity query
+            System.out.println("----- query by text -----"); 
+            List < TermConcept > concepts = session.createQuery(q1, TermConcept.class).list();
+            System.out.println("list " + concepts.size());
+            concepts.forEach(c -> System.out.println(c.toString()));
+        }
+        catch (Exception e) {
+        	System.out.println("App Exception putting student objects");
+            if (transaction != null) {
+                transaction.rollback();
+            }
+            System.out.println(e.getMessage());
+        }
+    }
 
-            System.out.println("list");
+// select tc.codeval, tc.display, tcv.cs_display, tcs.cs_name  from trm_concept tc join trm_codesystem_ver tcv on tc.codesystem_pid = tcv.pid  join trm_codesystem tcs on tcs.pid = tcv.codesystem_pid where lower(tc.display) like '%systolic%' and lower(tc.display) like '%blood%' and lower(tc.display) like '%pressure%' and lower(tc.display) not like '%diastolic%';;
+
+    public static void queryConceptsByTextJoin(String codeSystemName) {
+        String q1 = "from TermConcept where lower(display) like '%systolic%' and lower(display) like '%blood%' and lower(display) like '%pressure%'";
+
+        Transaction transaction = null;
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            // simple single-entity query
+            System.out.println("----- query by text -----"); 
+            List < TermConcept > concepts = session.createQuery(q1, TermConcept.class).list();
+            System.out.println("list " + concepts.size());
+            concepts.forEach(c -> {
+                // Application Join - Woo-Hoo!
+                TermCodeSystemVersion tcs = c.getCodeSystemVersion();
+                // Filter on the client, *awesome*!
+                if (tcs.getCodeSystemDisplayName().equals(codeSystemName)) {
+                    System.out.println(c.toString() + " -- " + tcs.toString());
+                }
+            });
+
+        }
+        catch (Exception e) {
+        	System.out.println("App Exception putting student objects");
+            if (transaction != null) {
+                transaction.rollback();
+            }
+            System.out.println(e.getMessage());
+        }
+    }
+
+    public static void queryConceptsByCode() {
+        Transaction transaction = null;
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            System.out.println("---- query by code ----"); 
+            List < TermConcept > concepts = session.createQuery(
+                "from TermConcept where codeval = '8480-6'",
+                TermConcept.class).list();
+
+            System.out.println("list " + concepts.size());
             concepts.forEach(c -> System.out.println(c.toString()));
             //concepts.forEach(c -> System.out.println(c.getId() + " " + c.getDisplay()));
         }
